@@ -26,9 +26,107 @@ const retryBtn       = document.getElementById("retry-btn");
 const datePicker     = document.getElementById("date-picker");
 const teamFilterEl   = document.getElementById("team-filter");
 const clearFilterBtn = document.getElementById("clear-filter");
+const standingsBody  = document.getElementById("standings-body");
+const standingsTabs  = document.querySelectorAll(".standings-tab");
 
 // ===== Filter State =====
 let allGames = []; // store fetched games so filter doesn't re-fetch
+let activeLeague = "AL";
+
+// ===== Standings =====
+// MLB league/division IDs
+const DIVISIONS = {
+  AL: [
+    { id: 200, name: "AL West" },
+    { id: 201, name: "AL East" },
+    { id: 202, name: "AL Central" },
+  ],
+  NL: [
+    { id: 203, name: "NL West" },
+    { id: 204, name: "NL East" },
+    { id: 205, name: "NL Central" },
+  ],
+};
+
+function showStandingsSkeleton() {
+  standingsBody.innerHTML = Array(3).fill(`
+    <div class="standings-skel">
+      <div class="skel-line short"></div>
+      <div class="skel-line long"></div>
+      <div class="skel-line long"></div>
+      <div class="skel-line med"></div>
+      <div class="skel-line long"></div>
+    </div>
+  `).join("");
+}
+
+async function loadStandings(league = activeLeague) {
+  showStandingsSkeleton();
+  try {
+    const res  = await fetch(`${BASE_URL}/standings?leagueId=${league === "AL" ? 103 : 104}&season=${new Date().getFullYear()}&standingsTypes=regularSeason&hydrate=team`);
+    if (!res.ok) throw new Error("standings fetch failed");
+    const data = await res.json();
+
+    const records = data.records || [];
+    standingsBody.innerHTML = "";
+
+    // Sort divisions in our preferred order
+    const divOrder = DIVISIONS[league].map(d => d.id);
+    const sorted = [...records].sort((a, b) =>
+      divOrder.indexOf(a.division.id) - divOrder.indexOf(b.division.id)
+    );
+
+    sorted.forEach((divRecord, di) => {
+      const divName = DIVISIONS[league].find(d => d.id === divRecord.division.id)?.name || divRecord.division.name;
+      const teams = divRecord.teamRecords || [];
+
+      const rows = teams.map(t => {
+        const isFav = favoriteTeamId && t.team.id === favoriteTeamId;
+        const gb = t.gamesBack === "-" ? "—" : t.gamesBack;
+        return `
+          <tr class="${isFav ? "my-team" : ""}">
+            <td title="${t.team.name}">${t.team.teamName}</td>
+            <td>${t.wins}</td>
+            <td>${t.losses}</td>
+            <td>${t.winningPercentage}</td>
+            <td>${gb}</td>
+          </tr>
+        `;
+      }).join("");
+
+      const block = document.createElement("div");
+      block.className = "division-block";
+      block.style.animationDelay = `${di * 60}ms`;
+      block.innerHTML = `
+        <div class="division-name">${divName}</div>
+        <table class="standings-table">
+          <thead>
+            <tr>
+              <th>Team</th>
+              <th>W</th>
+              <th>L</th>
+              <th>PCT</th>
+              <th>GB</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+      standingsBody.appendChild(block);
+    });
+  } catch {
+    standingsBody.innerHTML = `<p style="color:#8b9ab0;font-size:0.85rem;padding:0.5rem 0">Couldn't load standings.</p>`;
+  }
+}
+
+standingsTabs.forEach(tab => {
+  tab.addEventListener("click", () => {
+    standingsTabs.forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    activeLeague = tab.dataset.league;
+    loadStandings(activeLeague);
+  });
+});
 
 // ===== Helpers =====
 function getTodayString() {
@@ -81,6 +179,14 @@ function determineWinner(awayScore, homeScore, status) {
   return { away: "", home: "" };
 }
 
+// ===== Image Helpers =====
+function teamLogoUrl(teamId) {
+  return `https://www.mlb.com/assets/images/team/logos/team-cap-logo-${teamId}.svg`;
+}
+function playerHeadshotUrl(personId) {
+  return `https://img.mlbstatic.com/mlb-photos/image/upload/w_68,q_100/v1/people/${personId}/headshot/67/current`;
+}
+
 // ===== Render a single game card =====
 function createGameCard(game) {
   const away  = game.teams.away;
@@ -90,7 +196,6 @@ function createGameCard(game) {
   const status = getStatusInfo(game);
   const winner = determineWinner(away.score, home.score, status);
 
-  // Check if user's favorite team is playing
   const awayId = away.team?.id;
   const homeId = home.team?.id;
   const isFav  = favoriteTeamId && (awayId === favoriteTeamId || homeId === favoriteTeamId);
@@ -101,18 +206,20 @@ function createGameCard(game) {
     <div class="game-status ${status.cls}">${status.label}</div>
     <div class="teams">
       <div class="team-row">
+        <img class="team-logo" src="${teamLogoUrl(awayId)}" alt="${away.team?.name}" onerror="this.style.display='none'">
         <span class="team-name ${winner.away || ""}">${away.team?.name || "Away"}</span>
         <span class="team-score ${winner.away || ""}">${awayScore}</span>
       </div>
       <div class="team-row">
+        <img class="team-logo" src="${teamLogoUrl(homeId)}" alt="${home.team?.name}" onerror="this.style.display='none'">
         <span class="team-name ${winner.home || ""}">${home.team?.name || "Home"}</span>
         <span class="team-score ${winner.home || ""}">${homeScore}</span>
       </div>
     </div>
     <div class="game-meta">
       ${game.venue?.name ? `📍 ${game.venue.name}` : ""}
-      ${game.teams.away.probablePitcher || game.teams.home.probablePitcher
-        ? `<br>🤾 ${away.probablePitcher?.fullName || "TBD"} vs ${home.probablePitcher?.fullName || "TBD"}`
+      ${away.probablePitcher || home.probablePitcher
+        ? `<br>⚾ ${away.probablePitcher?.fullName || "TBD"} vs ${home.probablePitcher?.fullName || "TBD"}`
         : ""}
     </div>
   `;
@@ -317,6 +424,7 @@ function saveFavorite() {
   }
   hideEl(favModal);
   if (allGames.length > 0) filterAndRender(); else loadGames();
+  loadStandings(); // re-render standings to highlight new favorite team
 }
 
 // ===== Event Listeners =====
@@ -345,6 +453,101 @@ clearFilterBtn.addEventListener("click", () => {
   teamFilterEl.value = "";
   hideEl(clearFilterBtn);
   filterAndRender();
+});
+
+// ===== Stats Leaders =====
+const leadersGrid    = document.getElementById("leaders-grid");
+const leadersTabs    = document.querySelectorAll(".leaders-tab");
+let activeLeaderType = "hitting";
+
+const HITTING_STATS = [
+  { statGroup: "hitting", stat: "battingAverage",       label: "AVG",  decimals: 3 },
+  { statGroup: "hitting", stat: "homeRuns",             label: "HR",   decimals: 0 },
+  { statGroup: "hitting", stat: "runsBattedIn",         label: "RBI",  decimals: 0 },
+  { statGroup: "hitting", stat: "onBasePlusSlugging",   label: "OPS",  decimals: 3 },
+  { statGroup: "hitting", stat: "stolenBases",          label: "SB",   decimals: 0 },
+  { statGroup: "hitting", stat: "runs",                 label: "R",    decimals: 0 },
+];
+
+const PITCHING_STATS = [
+  { statGroup: "pitching", stat: "earnedRunAverage",    label: "ERA",  decimals: 2 },
+  { statGroup: "pitching", stat: "strikeouts",          label: "SO",   decimals: 0 },
+  { statGroup: "pitching", stat: "wins",                label: "W",    decimals: 0 },
+  { statGroup: "pitching", stat: "whip",                label: "WHIP", decimals: 2 },
+  { statGroup: "pitching", stat: "inningsPitched",      label: "IP",   decimals: 1 },
+  { statGroup: "pitching", stat: "saves",               label: "SV",   decimals: 0 },
+];
+
+function showLeadersSkeleton() {
+  leadersGrid.innerHTML = Array(6).fill(`
+    <div class="leaders-skel-card">
+      <div class="skel-line short"></div>
+      <div class="skel-line long"></div>
+      <div class="skel-line med"></div>
+      <div class="skel-line long"></div>
+      <div class="skel-line med"></div>
+    </div>
+  `).join("");
+}
+
+async function fetchLeaderStat({ statGroup, stat, label, decimals }, index) {
+  const ascending = stat === "earnedRunAverage" || stat === "whip";
+  const order = ascending ? "asc" : "desc";
+  const season = new Date().getFullYear();
+  const url = `${BASE_URL}/stats/leaders?leaderCategories=${stat}&season=${season}&leaderGameTypes=R&statGroup=${statGroup}&limit=5&statType=season&sortOrder=${order}`;
+
+  const res  = await fetch(url);
+  const data = await res.json();
+  const leaders = data.leagueLeaders?.[0]?.leaders || [];
+
+  const rows = leaders.slice(0, 5).map((p, i) => {
+    const val = decimals > 0 ? parseFloat(p.value).toFixed(decimals) : p.value;
+    const display = (stat === "battingAverage" || stat === "onBasePlusSlugging")
+      ? `.${String(val).split(".")[1] || "000"}`
+      : val;
+    const personId = p.person?.id;
+    const isTop = i === 0;
+    return `
+      <div class="leader-row ${isTop ? "top-leader" : ""}">
+        <span class="leader-rank">${p.rank}</span>
+        ${isTop && personId ? `<img class="leader-headshot" src="${playerHeadshotUrl(personId)}" alt="${p.person?.fullName}" onerror="this.style.display='none'">` : ""}
+        <span class="leader-name" title="${p.person?.fullName}">${p.person?.fullName?.split(" ").slice(-1)[0] ?? "—"}</span>
+        <span class="leader-team">${p.team?.abbreviation ?? ""}</span>
+        <span class="leader-value">${display}</span>
+      </div>
+    `;
+  }).join("");
+
+  const card = document.createElement("div");
+  card.className = "leaders-card";
+  card.style.animationDelay = `${index * 50}ms`;
+  card.innerHTML = `
+    <div class="leaders-stat-name">${label}</div>
+    <div class="leaders-list">${rows || '<span style="color:#8b9ab0;font-size:0.8rem">No data</span>'}</div>
+  `;
+  return card;
+}
+
+async function loadLeaders(type = activeLeaderType) {
+  showLeadersSkeleton();
+  const stats = type === "hitting" ? HITTING_STATS : PITCHING_STATS;
+
+  try {
+    const cards = await Promise.all(stats.map((s, i) => fetchLeaderStat(s, i)));
+    leadersGrid.innerHTML = "";
+    cards.forEach(card => leadersGrid.appendChild(card));
+  } catch {
+    leadersGrid.innerHTML = `<p style="color:#8b9ab0;font-size:0.85rem;padding:0.5rem 0;grid-column:1/-1">Couldn't load leaders.</p>`;
+  }
+}
+
+leadersTabs.forEach(tab => {
+  tab.addEventListener("click", () => {
+    leadersTabs.forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    activeLeaderType = tab.dataset.type;
+    loadLeaders(activeLeaderType);
+  });
 });
 
 // ===== News Feed =====
@@ -399,7 +602,9 @@ async function loadNews(source = activeNewsSource) {
       card.target = "_blank";
       card.rel = "noopener noreferrer";
       card.style.animationDelay = `${i * 40}ms`;
+      const thumb = item.thumbnail || item.enclosure?.link || "";
       card.innerHTML = `
+        ${thumb ? `<img class="news-thumb" src="${thumb}" alt="" onerror="this.style.display='none'">` : ""}
         <span class="news-source-label">${label}</span>
         <span class="news-title">${item.title}</span>
         <span class="news-date">${formatNewsDate(item.pubDate)}</span>
@@ -430,4 +635,6 @@ newsTabs.forEach(tab => {
 datePicker.value = getTodayString();
 if (favoriteTeamName) favBtn.textContent = `⭐ ${favoriteTeamName}`;
 loadNews();
+loadLeaders();
 loadGames();
+loadStandings();

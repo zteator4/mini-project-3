@@ -25,8 +25,10 @@ A live MLB scoreboard web app that shows today's games with real-time scores, ga
 
 | API | Purpose | Docs |
 |-----|---------|------|
-| [MLB Stats API](https://statsapi.mlb.com/api/v1/) | Live scores, schedules, linescores, team rosters | No key required |
-| [rss2json](https://rss2json.com) | Converts MLB.com and ESPN RSS feeds to JSON for news headlines | No key required |
+| [MLB Stats API](https://statsapi.mlb.com/api/v1/) | Live scores, schedules, linescores, standings, stat leaders | No key required |
+| [MLB Static Assets](https://www.mlb.com/assets/images/team/logos/) | Team cap logos (SVG) served directly from MLB | No key required |
+| [MLB Photos CDN](https://img.mlbstatic.com/mlb-photos/) | Player headshot images | No key required |
+| [rss2json](https://rss2json.com) | Converts MLB.com and ESPN RSS feeds to JSON for news headlines and thumbnails | No key required |
 
 ---
 

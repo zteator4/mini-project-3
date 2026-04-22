@@ -47,40 +47,76 @@
       </div>
     </section>
 
-    <!-- Search / Filter Controls -->
-    <div class="controls">
-      <div class="control-group">
-        <label for="date-picker">📅 Date</label>
-        <input type="date" id="date-picker" />
+    <!-- Stats Leaders -->
+    <section id="leaders-section">
+      <div class="leaders-header">
+        <h2>📊 League Leaders</h2>
+        <div class="leaders-tabs">
+          <button class="leaders-tab active" data-type="hitting">Hitting</button>
+          <button class="leaders-tab" data-type="pitching">Pitching</button>
+        </div>
       </div>
-      <div class="control-group">
-        <label for="team-filter">🔍 Filter by Team</label>
-        <input type="text" id="team-filter" placeholder="e.g. Red Sox, Yankees..." />
+      <div id="leaders-grid">
+        <!-- Injected by JS -->
       </div>
-      <button id="clear-filter" class="hidden">✕ Clear Filter</button>
-    </div>
-
-    <!-- Loading state -->
-    <div id="loading" class="hidden">
-      <div class="spinner"></div>
-      <p>Loading today's games...</p>
-    </div>
-
-    <!-- Error state -->
-    <div id="error" class="hidden">
-      <p>😔 Couldn't load today's games. Please try again later.</p>
-      <button id="retry-btn">Retry</button>
-    </div>
-
-    <!-- No games state -->
-    <div id="no-games" class="hidden">
-      <p>No MLB games scheduled for today. Check back tomorrow!</p>
-    </div>
-
-    <!-- Scoreboard -->
-    <section id="scoreboard">
-      <!-- Game cards injected here by JS -->
     </section>
+
+    <!-- Two-column layout: scoreboard + standings -->
+    <div class="content-layout">
+
+      <!-- Left: Scoreboard -->
+      <div class="scoreboard-col">
+        <!-- Search / Filter Controls -->
+        <div class="controls">
+          <div class="control-group">
+            <label for="date-picker">📅 Date</label>
+            <input type="date" id="date-picker" />
+          </div>
+          <div class="control-group">
+            <label for="team-filter">🔍 Filter by Team</label>
+            <input type="text" id="team-filter" placeholder="e.g. Red Sox, Yankees..." />
+          </div>
+          <button id="clear-filter" class="hidden">✕ Clear Filter</button>
+        </div>
+
+        <!-- Loading state -->
+        <div id="loading" class="hidden">
+          <div class="spinner"></div>
+          <p>Loading today's games...</p>
+        </div>
+
+        <!-- Error state -->
+        <div id="error" class="hidden">
+          <p>😔 Couldn't load today's games. Please try again later.</p>
+          <button id="retry-btn">Retry</button>
+        </div>
+
+        <!-- No games state -->
+        <div id="no-games" class="hidden">
+          <p>No MLB games scheduled for today. Check back tomorrow!</p>
+        </div>
+
+        <!-- Scoreboard -->
+        <section id="scoreboard">
+          <!-- Game cards injected here by JS -->
+        </section>
+      </div>
+
+      <!-- Right: Standings Sidebar -->
+      <aside id="standings-sidebar">
+        <div class="standings-header">
+          <h2>🏆 Standings</h2>
+          <div class="standings-tabs">
+            <button class="standings-tab active" data-league="AL">AL</button>
+            <button class="standings-tab" data-league="NL">NL</button>
+          </div>
+        </div>
+        <div id="standings-body">
+          <!-- Injected by JS -->
+        </div>
+      </aside>
+
+    </div><!-- end .content-layout -->
   </main>
 
   <!-- Game detail modal -->
