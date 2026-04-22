@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MLB Live Scoreboard</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header>
+    <div class="header-inner">
+      <h1>⚾ MLB Scoreboard</h1>
+      <div class="header-controls">
+        <span id="today-date"></span>
+        <button id="fav-btn">⭐ Set Favorite Team</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Favorite team modal -->
+  <div id="fav-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>Choose Your Favorite Team</h2>
+      <select id="team-select">
+        <option value="">Loading teams...</option>
+      </select>
+      <div class="modal-actions">
+        <button id="save-fav">Save</button>
+        <button id="close-modal">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <main>
+    <!-- Baseball News Feed -->
+    <section id="news-section">
+      <div class="news-header">
+        <h2>⚡ Baseball News</h2>
+        <div class="news-source-tabs">
+          <button class="news-tab active" data-source="mlb">MLB.com</button>
+          <button class="news-tab" data-source="espn">ESPN</button>
+        </div>
+      </div>
+      <div id="news-feed">
+        <!-- Injected by JS -->
+      </div>
+    </section>
+
+    <!-- Search / Filter Controls -->
+    <div class="controls">
+      <div class="control-group">
+        <label for="date-picker">📅 Date</label>
+        <input type="date" id="date-picker" />
+      </div>
+      <div class="control-group">
+        <label for="team-filter">🔍 Filter by Team</label>
+        <input type="text" id="team-filter" placeholder="e.g. Red Sox, Yankees..." />
+      </div>
+      <button id="clear-filter" class="hidden">✕ Clear Filter</button>
+    </div>
+
+    <!-- Loading state -->
+    <div id="loading" class="hidden">
+      <div class="spinner"></div>
+      <p>Loading today's games...</p>
+    </div>
+
+    <!-- Error state -->
+    <div id="error" class="hidden">
+      <p>😔 Couldn't load today's games. Please try again later.</p>
+      <button id="retry-btn">Retry</button>
+    </div>
+
+    <!-- No games state -->
+    <div id="no-games" class="hidden">
+      <p>No MLB games scheduled for today. Check back tomorrow!</p>
+    </div>
+
+    <!-- Scoreboard -->
+    <section id="scoreboard">
+      <!-- Game cards injected here by JS -->
+    </section>
+  </main>
+
+  <!-- Game detail modal -->
+  <div id="detail-modal" class="modal hidden">
+    <div class="modal-content detail-content">
+      <button id="close-detail">✕</button>
+      <div id="detail-body">
+        <!-- Injected by JS -->
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
