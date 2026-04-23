@@ -131,6 +131,62 @@
   min-width: 0; /* prevents grid blowout */
 }
 
+/* ===== Card actions (box score link) ===== */
+.card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.75rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid #2a2f3f;
+}
+
+.card-detail-hint {
+  font-size: 0.72rem;
+  color: #8b9ab0;
+}
+
+.box-score-link {
+  font-size: 0.75rem;
+  color: #64b5f6;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s;
+}
+.box-score-link:hover { color: #90caf9; }
+
+.box-score-btn {
+  display: inline-block;
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background: #002d72;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+.box-score-btn:hover { background: #003fa3; }
+
+.detail-logo {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  vertical-align: middle;
+}
+
+.detail-teams {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  padding-right: 2rem;
+  flex-wrap: wrap;
+}
+
 /* ===== Team Logos ===== */
 .team-logo {
   width: 24px;
@@ -443,6 +499,45 @@
 }
 #date-picker { cursor: pointer; }
 
+.date-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.nav-arrow {
+  background: #1a1d27;
+  border: 1px solid #2a2f3f;
+  color: #e8eaf0;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, border-color 0.2s;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.nav-arrow:hover:not(:disabled) { background: #002d72; border-color: #002d72; }
+.nav-arrow:disabled { color: #3a3f55; cursor: not-allowed; }
+
+#today-btn {
+  background: #1a1d27;
+  border: 1px solid #2a2f3f;
+  color: #e8eaf0;
+  padding: 0 0.75rem;
+  height: 30px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+  white-space: nowrap;
+}
+#today-btn:hover { background: #002d72; border-color: #002d72; }
+
 #clear-filter {
   background: #2a2f3f;
   color: #e8eaf0;
@@ -623,6 +718,84 @@ main {
   color: #8b9ab0;
 }
 
+/* ===== Recent Results ===== */
+#recent-results {
+  margin-bottom: 1rem;
+  background: #1a1d27;
+  border: 1px solid #2a2f3f;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.recent-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s;
+}
+.recent-header:hover { background: #20243a; }
+
+.recent-header h3 {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #e8eaf0;
+}
+
+#recent-chevron {
+  font-size: 0.7rem;
+  color: #8b9ab0;
+  transition: transform 0.2s;
+}
+#recent-chevron.open { transform: rotate(180deg); }
+
+#recent-body {
+  display: none;
+  padding: 0 1rem 0.75rem;
+}
+#recent-body.open { display: block; }
+
+.recent-day {
+  margin-bottom: 0.75rem;
+}
+
+.recent-day-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #64b5f6;
+  margin-bottom: 0.4rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #2a2f3f;
+}
+
+.recent-games {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.recent-game-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #0f1117;
+  border: 1px solid #2a2f3f;
+  border-radius: 8px;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.78rem;
+  text-decoration: none;
+  color: #e8eaf0;
+  transition: border-color 0.15s;
+}
+.recent-game-chip:hover { border-color: #002d72; }
+.recent-game-chip img { width: 16px; height: 16px; object-fit: contain; }
+.recent-game-chip .chip-score { font-weight: 700; color: #fff; }
+.recent-game-chip .chip-loser { color: #8b9ab0; }
+
 /* ===== Loading ===== */
 #loading {
   text-align: center;
@@ -732,13 +905,6 @@ main {
   font-size: 0.9rem;
 }
 #close-detail:hover { background: #3a3f55; }
-
-.detail-teams {
-  font-size: 1.3rem;
-  font-weight: 700;
-  margin-bottom: 1rem;
-  padding-right: 2rem;
-}
 
 .linescore-table {
   width: 100%;

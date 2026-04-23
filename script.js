@@ -24,6 +24,9 @@ const detailBody     = document.getElementById("detail-body");
 const closeDetail    = document.getElementById("close-detail");
 const retryBtn       = document.getElementById("retry-btn");
 const datePicker     = document.getElementById("date-picker");
+const prevDayBtn     = document.getElementById("prev-day");
+const nextDayBtn     = document.getElementById("next-day");
+const todayBtn       = document.getElementById("today-btn");
 const teamFilterEl   = document.getElementById("team-filter");
 const clearFilterBtn = document.getElementById("clear-filter");
 const standingsBody  = document.getElementById("standings-body");
@@ -137,6 +140,22 @@ function getTodayString() {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+function shiftDate(dateStr, days) {
+  const d = new Date(dateStr + "T12:00:00");
+  d.setDate(d.getDate() + days);
+  const yyyy = d.getFullYear();
+  const mm   = String(d.getMonth() + 1).padStart(2, "0");
+  const dd   = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function updateDateNavControls() {
+  const today    = getTodayString();
+  const selected = datePicker.value || today;
+  nextDayBtn.disabled = selected >= today;
+  if (selected >= today) hideEl(todayBtn); else showEl(todayBtn);
+}
+
 function formatDisplayDate(dateStr) {
   const d = new Date(dateStr + "T12:00:00"); // noon local to avoid timezone shift
   return d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
@@ -181,10 +200,13 @@ function determineWinner(awayScore, homeScore, status) {
 
 // ===== Image Helpers =====
 function teamLogoUrl(teamId) {
-  return `https://www.mlb.com/assets/images/team/logos/team-cap-logo-${teamId}.svg`;
+  return `https://www.mlbstatic.com/team-logos/${teamId}.svg`;
 }
 function playerHeadshotUrl(personId) {
   return `https://img.mlbstatic.com/mlb-photos/image/upload/w_68,q_100/v1/people/${personId}/headshot/67/current`;
+}
+function boxScoreUrl(gamePk) {
+  return `https://www.mlb.com/gameday/${gamePk}/final/box-score`;
 }
 
 // ===== Render a single game card =====
@@ -199,6 +221,7 @@ function createGameCard(game) {
   const awayId = away.team?.id;
   const homeId = home.team?.id;
   const isFav  = favoriteTeamId && (awayId === favoriteTeamId || homeId === favoriteTeamId);
+  const isFinished = status.cls === "final";
 
   const card = document.createElement("div");
   card.className = `game-card${isFav ? " favorite" : ""}`;
@@ -222,10 +245,96 @@ function createGameCard(game) {
         ? `<br>⚾ ${away.probablePitcher?.fullName || "TBD"} vs ${home.probablePitcher?.fullName || "TBD"}`
         : ""}
     </div>
+    <div class="card-actions">
+      <span class="card-detail-hint">View details</span>
+      ${isFinished ? `<a class="box-score-link" href="${boxScoreUrl(game.gamePk)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Box Score ↗</a>` : ""}
+    </div>
   `;
 
   card.addEventListener("click", () => openDetailModal(game));
   return card;
+}
+
+// ===== Recent Results =====
+const recentBody   = document.getElementById("recent-body");
+const recentToggle = document.getElementById("recent-toggle");
+const recentChevron = document.getElementById("recent-chevron");
+
+recentToggle.addEventListener("click", () => {
+  const isOpen = recentBody.classList.toggle("open");
+  recentChevron.classList.toggle("open", isOpen);
+});
+
+function getPastDateString(daysAgo) {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  const yyyy = d.getFullYear();
+  const mm   = String(d.getMonth() + 1).padStart(2, "0");
+  const dd   = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function formatShortDate(dateStr) {
+  const d = new Date(dateStr + "T12:00:00");
+  return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+}
+
+async function loadRecentResults() {
+  recentBody.innerHTML = `<p style="color:#8b9ab0;font-size:0.82rem;padding:0.5rem 0">Loading recent results...</p>`;
+
+  const days = [1, 2, 3]; // yesterday, 2 days ago, 3 days ago
+  const dates = days.map(getPastDateString);
+
+  try {
+    const fetches = dates.map(d =>
+      fetch(`${BASE_URL}/schedule?sportId=1&date=${d}&hydrate=team`)
+        .then(r => r.json())
+        .then(data => ({ date: d, games: data.dates?.[0]?.games || [] }))
+        .catch(() => ({ date: d, games: [] }))
+    );
+    const results = await Promise.all(fetches);
+
+    recentBody.innerHTML = "";
+
+    results.forEach(({ date, games }) => {
+      const finals = games.filter(g => {
+        const code = g.status?.codedGameState;
+        return code === "F" || code === "O";
+      });
+      if (!finals.length) return;
+
+      const dayEl = document.createElement("div");
+      dayEl.className = "recent-day";
+      const chipsHtml = finals.map(g => {
+        const away = g.teams.away;
+        const home = g.teams.home;
+        const awayScore = away.score ?? 0;
+        const homeScore = home.score ?? 0;
+        const awayWon = awayScore > homeScore;
+        return `
+          <a class="recent-game-chip" href="${boxScoreUrl(g.gamePk)}" target="_blank" rel="noopener">
+            <img src="${teamLogoUrl(away.team?.id)}" alt="${away.team?.abbreviation}" onerror="this.style.display='none'">
+            <span class="${awayWon ? "chip-score" : "chip-loser"}">${away.team?.abbreviation ?? "?"} ${awayScore}</span>
+            <span style="color:#2a2f3f">·</span>
+            <img src="${teamLogoUrl(home.team?.id)}" alt="${home.team?.abbreviation}" onerror="this.style.display='none'">
+            <span class="${!awayWon ? "chip-score" : "chip-loser"}">${home.team?.abbreviation ?? "?"} ${homeScore}</span>
+          </a>
+        `;
+      }).join("");
+
+      dayEl.innerHTML = `
+        <div class="recent-day-label">${formatShortDate(date)}</div>
+        <div class="recent-games">${chipsHtml}</div>
+      `;
+      recentBody.appendChild(dayEl);
+    });
+
+    if (!recentBody.innerHTML.trim()) {
+      recentBody.innerHTML = `<p style="color:#8b9ab0;font-size:0.82rem;padding:0.5rem 0">No recent results found.</p>`;
+    }
+  } catch {
+    recentBody.innerHTML = `<p style="color:#8b9ab0;font-size:0.82rem;padding:0.5rem 0">Couldn't load recent results.</p>`;
+  }
 }
 
 // ===== Filter & Render (no re-fetch) =====
@@ -339,8 +448,16 @@ async function openDetailModal(game) {
     const awayRuns = innings.map(inn => `<td>${inn.away?.runs ?? "–"}</td>`).join("");
     const homeRuns = innings.map(inn => `<td>${inn.home?.runs ?? "–"}</td>`).join("");
 
+    const awayTeamId = game.teams.away.team?.id;
+    const homeTeamId = game.teams.home.team?.id;
+    const isFinished = status.cls === "final";
+
     detailBody.innerHTML = `
-      <div class="detail-teams">${away} <span style="color:#8b9ab0">@</span> ${home}</div>
+      <div class="detail-teams">
+        <img class="detail-logo" src="${teamLogoUrl(awayTeamId)}" alt="${away}" onerror="this.style.display='none'">
+        ${away} <span style="color:#8b9ab0">@</span> ${home}
+        <img class="detail-logo" src="${teamLogoUrl(homeTeamId)}" alt="${home}" onerror="this.style.display='none'">
+      </div>
       <div class="game-status ${status.cls}" style="margin-bottom:1rem">${status.label}</div>
 
       <table class="linescore-table">
@@ -373,6 +490,7 @@ async function openDetailModal(game) {
         ${game.venue?.name ? `📍 ${game.venue.name}` : ""}
         ${game.teams.away.probablePitcher ? `<br>⚾ Pitchers: ${game.teams.away.probablePitcher.fullName} vs ${game.teams.home.probablePitcher?.fullName || "TBD"}` : ""}
       </div>
+      ${isFinished ? `<a class="box-score-btn" href="${boxScoreUrl(game.gamePk)}" target="_blank" rel="noopener">View Full Box Score on MLB.com ↗</a>` : ""}
     `;
   } catch {
     detailBody.innerHTML = `
@@ -442,6 +560,31 @@ detailModal.addEventListener("click", e => { if (e.target === detailModal) close
 datePicker.addEventListener("change", () => {
   teamFilterEl.value = "";
   hideEl(clearFilterBtn);
+  updateDateNavControls();
+  loadGames();
+});
+
+prevDayBtn.addEventListener("click", () => {
+  datePicker.value = shiftDate(datePicker.value || getTodayString(), -1);
+  teamFilterEl.value = "";
+  hideEl(clearFilterBtn);
+  updateDateNavControls();
+  loadGames();
+});
+
+nextDayBtn.addEventListener("click", () => {
+  datePicker.value = shiftDate(datePicker.value || getTodayString(), 1);
+  teamFilterEl.value = "";
+  hideEl(clearFilterBtn);
+  updateDateNavControls();
+  loadGames();
+});
+
+todayBtn.addEventListener("click", () => {
+  datePicker.value = getTodayString();
+  teamFilterEl.value = "";
+  hideEl(clearFilterBtn);
+  updateDateNavControls();
   loadGames();
 });
 
@@ -633,8 +776,10 @@ newsTabs.forEach(tab => {
 
 
 datePicker.value = getTodayString();
+updateDateNavControls();
 if (favoriteTeamName) favBtn.textContent = `⭐ ${favoriteTeamName}`;
 loadNews();
 loadLeaders();
+loadRecentResults();
 loadGames();
 loadStandings();

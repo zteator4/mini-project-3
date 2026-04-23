@@ -70,7 +70,12 @@
         <div class="controls">
           <div class="control-group">
             <label for="date-picker">📅 Date</label>
-            <input type="date" id="date-picker" />
+            <div class="date-nav">
+              <button id="prev-day" class="nav-arrow" title="Previous day">&#8592;</button>
+              <input type="date" id="date-picker" />
+              <button id="next-day" class="nav-arrow" title="Next day">&#8594;</button>
+              <button id="today-btn" class="hidden">Today</button>
+            </div>
           </div>
           <div class="control-group">
             <label for="team-filter">🔍 Filter by Team</label>
@@ -78,6 +83,17 @@
           </div>
           <button id="clear-filter" class="hidden">✕ Clear Filter</button>
         </div>
+
+        <!-- Recent Results -->
+        <section id="recent-results">
+          <div class="recent-header" id="recent-toggle">
+            <h3>🕐 Recent Results</h3>
+            <span id="recent-chevron">▼</span>
+          </div>
+          <div id="recent-body">
+            <!-- Injected by JS -->
+          </div>
+        </section>
 
         <!-- Loading state -->
         <div id="loading" class="hidden">
